@@ -1,30 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/editSymptoms"
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Симптомы" />
+        android:layout_marginTop="16dp"
+        android:hint="Symptoms">
 
-    <EditText
-        android:id="@+id/editTriggers"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editSymptoms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:minLines="3" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Триггеры" />
+        android:layout_marginTop="16dp"
+        android:hint="Triggers">
 
-    <EditText
-        android:id="@+id/editMedication"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editTriggers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:minLines="3" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Лекарство" />
+        android:layout_marginTop="16dp"
+        android:hint="Medication (optional)">
 
-    <Button
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editMedication"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:minLines="2" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Сохранить" />
+        android:layout_marginTop="32dp"
+        android:text="Save Record" />
+
 </LinearLayout>

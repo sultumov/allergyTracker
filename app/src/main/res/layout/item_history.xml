@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/productNameText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/scanDateText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="4dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/allergenChipGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/glutenChip"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Глютен"
+                android:visibility="gone" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/lactoseChip"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Лактоза"
+                android:visibility="gone" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/nutsChip"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Орехи"
+                android:visibility="gone" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView> 

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/allergyTrackerFragment">
+
+    <fragment
+        android:id="@+id/allergyTrackerFragment"
+        android:name="com.example.allergytracker.ui.allergy.AllergyTrackerFragment"
+        android:label="Allergy Tracker">
+        <action
+            android:id="@+id/action_allergyTracker_to_addAllergy"
+            app:destination="@id/addAllergyFragment" />
+        <action
+            android:id="@+id/action_allergyTracker_to_addReaction"
+            app:destination="@id/addReactionFragment" />
+        <action
+            android:id="@+id/action_allergyTracker_to_allergyDetails"
+            app:destination="@id/allergyDetailsFragment">
+            <argument
+                android:name="allergyId"
+                app:argType="string" />
+        </action>
+        <action
+            android:id="@+id/action_allergyTracker_to_reactionDetails"
+            app:destination="@id/reactionDetailsFragment">
+            <argument
+                android:name="reactionId"
+                app:argType="integer" />
+        </action>
+    </fragment>
+
+    <fragment
+        android:id="@+id/addAllergyFragment"
+        android:name="com.example.allergytracker.ui.allergy.AddAllergyFragment"
+        android:label="Add Allergy" />
+
+    <fragment
+        android:id="@+id/addReactionFragment"
+        android:name="com.example.allergytracker.ui.allergy.AddReactionFragment"
+        android:label="Add Reaction" />
+
+    <fragment
+        android:id="@+id/allergyDetailsFragment"
+        android:name="com.example.allergytracker.ui.allergy.AllergyDetailsFragment"
+        android:label="Allergy Details">
+        <argument
+            android:name="allergyId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/reactionDetailsFragment"
+        android:name="com.example.allergytracker.ui.allergy.ReactionDetailsFragment"
+        android:label="Reaction Details">
+        <argument
+            android:name="reactionId"
+            app:argType="integer" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/productScannerFragment"
+        android:name="com.example.allergytracker.ui.scanner.ProductScannerFragment"
+        android:label="Product Scanner" />
+
+    <fragment
+        android:id="@+id/recipeGeneratorFragment"
+        android:name="com.example.allergytracker.ui.recipe.RecipeGeneratorFragment"
+        android:label="Recipe Generator" />
+
+    <fragment
+        android:id="@+id/allergenGuideFragment"
+        android:name="com.example.allergytracker.ui.guide.AllergenGuideFragment"
+        android:label="Allergen Guide" />
+
+</navigation> 

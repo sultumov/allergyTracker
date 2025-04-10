@@ -1,3 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AllergyTracker</string>
+    <string name="no_history">История сканирований пуста</string>
+    <string name="record_deleted">Запись удалена</string>
+    <string name="undo">Отменить</string>
 </resources>
