@@ -4,8 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.allergytracker.data.model.Allergy
 import com.example.allergytracker.data.model.AllergyRecord
+import com.example.allergytracker.data.model.HistoryItem
 import com.example.allergytracker.data.model.Product
-import com.google.common.reflect.TypeToken
+//import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext

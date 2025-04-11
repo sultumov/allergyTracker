@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -18,10 +19,11 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+@ExperimentalGetImage
 class ScannerActivity : AppCompatActivity() {
     private lateinit var binding: ActivityScannerBinding
     private lateinit var cameraExecutor: ExecutorService
-    private val barcodeScanner = BarcodeScanning.getClient()
+    private var cameraProvider: ProcessCameraProvider? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -39,16 +41,16 @@ class ScannerActivity : AppCompatActivity() {
         binding = ActivityScannerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         if (allPermissionsGranted()) {
             startCamera()
         } else {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-
-        binding.scanButton.setOnClickListener {
-            // Здесь будет логика обработки сканирования
         }
     }
 
@@ -60,75 +62,69 @@ class ScannerActivity : AppCompatActivity() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.cameraPreview.surfaceProvider)
-            }
-
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor) { imageProxy ->
-                        val mediaImage = imageProxy.image
-                        if (mediaImage != null) {
-                            val image = InputImage.fromMediaImage(
-                                mediaImage,
-                                imageProxy.imageInfo.rotationDegrees
-                            )
-                            processImage(image)
-                        }
-                        imageProxy.close()
-                    }
-                }
-
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    imageAnalysis
-                )
-            } catch (e: Exception) {
-                Toast.makeText(this, "Ошибка запуска камеры", Toast.LENGTH_SHORT).show()
-            }
+            cameraProvider = cameraProviderFuture.get()
+            bindCameraUseCases()
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun processImage(image: InputImage) {
-        barcodeScanner.process(image)
-            .addOnSuccessListener { barcodes ->
-                for (barcode in barcodes) {
-                    when (barcode.valueType) {
-                        Barcode.TYPE_PRODUCT -> {
-                            val barcodeValue = barcode.rawValue
-                            if (barcodeValue != null) {
-                                // Обработка штрих-кода продукта
-                                runOnUiThread {
-                                    binding.progressIndicator.visibility = android.view.View.VISIBLE
-                                    // Здесь будет логика обработки штрих-кода
+    private fun bindCameraUseCases() {
+        val cameraProvider = cameraProvider ?: return
+
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
+        }
+
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also {
+                it.setAnalyzer(cameraExecutor) { imageProxy ->
+                    val mediaImage = imageProxy.image
+                    if (mediaImage != null) {
+                        val image = InputImage.fromMediaImage(
+                            mediaImage,
+                            imageProxy.imageInfo.rotationDegrees
+                        )
+                        val scanner = BarcodeScanning.getClient()
+                        scanner.process(image)
+                            .addOnSuccessListener { barcodes ->
+                                for (barcode in barcodes) {
+                                    when (barcode.valueType) {
+                                        Barcode.TYPE_PRODUCT -> {
+                                            val productCode = barcode.rawValue
+                                            // Handle product code
+                                            Toast.makeText(this, "Product code: $productCode", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 }
                             }
-                        }
-                        else -> {
-                            runOnUiThread {
-                                Toast.makeText(this, "Неверный формат штрих-кода", Toast.LENGTH_SHORT).show()
+                            .addOnCompleteListener {
+                                imageProxy.close()
                             }
-                        }
                     }
                 }
             }
-            .addOnFailureListener {
-                runOnUiThread {
-                    Toast.makeText(this, "Ошибка сканирования", Toast.LENGTH_SHORT).show()
-                }
-            }
+
+        try {
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(
+                this,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                preview,
+                imageAnalysis
+            )
+        } catch (exc: Exception) {
+            Toast.makeText(this, "Failed to bind camera use cases: ${exc.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return true
     }
 } 

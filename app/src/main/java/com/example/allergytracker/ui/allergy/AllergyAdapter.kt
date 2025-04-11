@@ -1,21 +1,24 @@
 package com.example.allergytracker.ui.allergy
 
-import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
-import com.example.allergytracker.R
-import com.example.allergytracker.data.model.Allergy
 import com.example.allergytracker.databinding.ItemAllergyBinding
+import com.example.allergytracker.domain.model.Allergy
+import com.example.allergytracker.ui.common.BaseFilterAdapter
+import com.example.allergytracker.ui.common.GenericDiffCallback
+import com.example.allergytracker.util.AnimationUtils
+import com.example.allergytracker.util.DateUtils
+import timber.log.Timber
 
 class AllergyAdapter(
     private val onItemClick: (Allergy) -> Unit,
-    private val onItemLongClick: (Allergy) -> Unit = {}
-) : ListAdapter<Allergy, AllergyAdapter.AllergyViewHolder>(AllergyDiffCallback()) {
+    private val onLongClick: (Allergy) -> Boolean
+) : BaseFilterAdapter<Allergy, AllergyAdapter.AllergyViewHolder>(
+    GenericDiffCallback(
+        getItemIdFunction = { it.id },
+        areContentsTheSameFunction = { old, new -> old == new }
+    )
+) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AllergyViewHolder {
         val binding = ItemAllergyBinding.inflate(
@@ -23,83 +26,46 @@ class AllergyAdapter(
             parent,
             false
         )
-        return AllergyViewHolder(binding)
+        return AllergyViewHolder(binding, onItemClick, onLongClick)
     }
-
-    override fun onBindViewHolder(holder: AllergyViewHolder, position: Int) {
-        try {
-            holder.bind(getItem(position))
-        } catch (e: Exception) {
-            Log.e("AllergyAdapter", "Error binding allergy item at position $position", e)
-        }
-    }
-
+    
     override fun onViewAttachedToWindow(holder: AllergyViewHolder) {
         super.onViewAttachedToWindow(holder)
-        holder.itemView.startAnimation(
-            AnimationUtils.loadAnimation(holder.itemView.context, R.anim.item_animation)
-        )
+        try {
+            AnimationUtils.playListItemAnimation(holder.itemView)
+        } catch (e: Exception) {
+            Timber.e(e, "Error applying animation")
+        }
     }
 
-    inner class AllergyViewHolder(
-        private val binding: ItemAllergyBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    override fun filterItem(item: Allergy, constraint: String): Boolean {
+        return item.name.lowercase().contains(constraint) ||
+               item.category.lowercase().contains(constraint) ||
+               item.description.lowercase().contains(constraint) ||
+               item.severity.lowercase().contains(constraint)
+    }
 
-        init {
-            binding.root.setOnClickListener {
-                val position = adapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    try {
-                        onItemClick(getItem(position))
-                    } catch (e: Exception) {
-                        Log.e("AllergyAdapter", "Error handling item click at position $position", e)
-                    }
-                }
-            }
+    class AllergyViewHolder(
+        private val binding: ItemAllergyBinding,
+        onItemClick: (Allergy) -> Unit,
+        onItemLongClick: (Allergy) -> Boolean
+    ) : BaseViewHolder<Allergy>(binding.root, onItemClick, onItemLongClick) {
 
-            binding.root.setOnLongClickListener {
-                val position = adapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    try {
-                        onItemLongClick(getItem(position))
-                        true
-                    } catch (e: Exception) {
-                        Log.e("AllergyAdapter", "Error handling long click at position $position", e)
-                        false
-                    }
-                } else {
-                    false
-                }
-            }
-        }
-
-        fun bind(allergy: Allergy) {
+        override fun bindItem(allergy: Allergy) {
             try {
                 binding.apply {
-                    tvAllergyName.text = allergy.name
-                    tvAllergyCategory.text = allergy.category.toString()
-                    tvSeverity.text = allergy.severity.toString()
+                    textAllergyName.text = allergy.name
+                    textAllergyCategory.text = allergy.category
+                    textAllergySeverity.text = allergy.severity
                     
-                    if (allergy.description.isNotEmpty()) {
-                        tvNotes.text = allergy.description
-                        tvNotes.visibility = View.VISIBLE
-                    } else {
-                        tvNotes.visibility = View.GONE
-                    }
+                    textAllergyDate.text = DateUtils.formatDate(allergy.createdAt)
+                    
+                    // Можно добавить визуальное обозначение активности
+                    root.alpha = if (allergy.isActive) 1.0f else 0.5f
                 }
             } catch (e: Exception) {
-                Log.e("AllergyAdapter", "Error binding allergy: ${allergy.name}", e)
+                Timber.e(e, "Error binding allergy data: $allergy")
             }
-        }
-    }
-
-    private class AllergyDiffCallback : DiffUtil.ItemCallback<Allergy>() {
-        override fun areItemsTheSame(oldItem: Allergy, newItem: Allergy): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: Allergy, newItem: Allergy): Boolean {
-            return oldItem == newItem
         }
     }
 } 
