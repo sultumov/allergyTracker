@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.allergytracker.data.model.AllergyRecord
 
 @Database(entities = [AllergyRecord::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {

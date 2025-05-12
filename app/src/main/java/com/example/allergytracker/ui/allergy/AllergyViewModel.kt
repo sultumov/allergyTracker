@@ -2,7 +2,6 @@ package com.example.allergytracker.ui.allergy
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.allergytracker.domain.model.Allergy
 import com.example.allergytracker.domain.usecase.allergy.AddAllergyUseCase
@@ -10,11 +9,10 @@ import com.example.allergytracker.domain.usecase.allergy.DeleteAllergyUseCase
 import com.example.allergytracker.domain.usecase.allergy.GetAllergyByIdUseCase
 import com.example.allergytracker.domain.usecase.allergy.GetAllergiesUseCase
 import com.example.allergytracker.domain.usecase.allergy.UpdateAllergyUseCase
+import com.example.allergytracker.ui.BaseViewModel
 import com.example.allergytracker.ui.state.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -26,7 +24,7 @@ class AllergyViewModel @Inject constructor(
     private val addAllergyUseCase: AddAllergyUseCase,
     private val updateAllergyUseCase: UpdateAllergyUseCase,
     private val deleteAllergyUseCase: DeleteAllergyUseCase
-) : ViewModel() {
+) : BaseViewModel() {
 
     // Список аллергий
     private val _allergies = MutableLiveData<UiState<List<Allergy>>>()
@@ -43,19 +41,15 @@ class AllergyViewModel @Inject constructor(
     // Текущий тип фильтра
     private var currentFilterType = FilterType.ALL
 
-    // Обработчик исключений
-    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Timber.e(throwable, "Error in ViewModel")
-        _allergies.postValue(UiState.Error("Произошла ошибка: ${throwable.localizedMessage}"))
-    }
-
     init {
         loadAllergies()
     }
 
     fun loadAllergies() {
         _allergies.value = UiState.Loading
-        viewModelScope.launch(exceptionHandler) {
+        launchSafe(viewModelScope, onError = { error ->
+            _allergies.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+        }) {
             try {
                 val allergies = withContext(Dispatchers.IO) {
                     getAllergiesUseCase()
@@ -70,7 +64,9 @@ class AllergyViewModel @Inject constructor(
 
     fun getAllergyById(id: Long) {
         _allergyDetails.value = UiState.Loading
-        viewModelScope.launch(exceptionHandler) {
+        launchSafe(viewModelScope, onError = { error ->
+            _allergyDetails.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+        }) {
             try {
                 val allergy = withContext(Dispatchers.IO) {
                     getAllergyByIdUseCase(id)
@@ -90,7 +86,9 @@ class AllergyViewModel @Inject constructor(
 
     fun addAllergy(allergy: Allergy) {
         _saveState.value = UiState.Loading
-        viewModelScope.launch(exceptionHandler) {
+        launchSafe(viewModelScope, onError = { error ->
+            _saveState.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+        }) {
             try {
                 withContext(Dispatchers.IO) {
                     addAllergyUseCase(allergy)
@@ -106,7 +104,9 @@ class AllergyViewModel @Inject constructor(
 
     fun updateAllergy(allergy: Allergy) {
         _saveState.value = UiState.Loading
-        viewModelScope.launch(exceptionHandler) {
+        launchSafe(viewModelScope, onError = { error ->
+            _saveState.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+        }) {
             try {
                 withContext(Dispatchers.IO) {
                     updateAllergyUseCase(allergy)
@@ -121,7 +121,9 @@ class AllergyViewModel @Inject constructor(
     }
 
     fun deleteAllergy(allergy: Allergy) {
-        viewModelScope.launch(exceptionHandler) {
+        launchSafe(viewModelScope, onError = { error ->
+            _allergies.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+        }) {
             try {
                 withContext(Dispatchers.IO) {
                     deleteAllergyUseCase(allergy.id)
@@ -165,5 +167,4 @@ class AllergyViewModel @Inject constructor(
     enum class FilterType {
         ALL, ACTIVE, SEVERE
     }
-} 
 } 

@@ -42,7 +42,7 @@ class ReactionAdapter(
         private val binding: ItemReactionBinding,
         onItemClick: (Reaction) -> Unit,
         onItemLongClick: (Reaction) -> Boolean
-    ) : BaseViewHolder<Reaction>(binding.root, onItemClick, onItemLongClick) {
+    ) : BaseAdapter.BaseViewHolder<Reaction>(binding.root, onItemClick, onItemLongClick) {
 
         override fun bindItem(reaction: Reaction) {
             try {
