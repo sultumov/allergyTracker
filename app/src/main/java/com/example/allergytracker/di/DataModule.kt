@@ -78,15 +78,15 @@ object DataModule {
     @Singleton
     fun provideAllergyRepository(
         dataSource: FirebaseAllergyDataSource,
-        mapper: AllergyMapper
-    ): AllergyRepository = AllergyRepositoryImpl(dataSource, mapper)
+        allergyMapper: AllergyMapper
+    ): AllergyRepository = AllergyRepositoryImpl(dataSource, allergyMapper)
     
     @Provides
     @Singleton
     fun provideReactionRepository(
         dataSource: FirebaseReactionDataSource,
-        mapper: ReactionMapper
-    ): ReactionRepository = ReactionRepositoryImpl(dataSource, mapper)
+        reactionMapper: ReactionMapper
+    ): ReactionRepository = ReactionRepositoryImpl(dataSource, reactionMapper)
     
     @Provides
     @Singleton

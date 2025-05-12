@@ -9,10 +9,11 @@ import com.example.allergytracker.domain.usecase.allergy.DeleteAllergyUseCase
 import com.example.allergytracker.domain.usecase.allergy.GetAllergyByIdUseCase
 import com.example.allergytracker.domain.usecase.allergy.GetAllergiesUseCase
 import com.example.allergytracker.domain.usecase.allergy.UpdateAllergyUseCase
-import com.example.allergytracker.ui.BaseViewModel
+import com.example.allergytracker.ui.common.BaseViewModel
 import com.example.allergytracker.ui.state.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -46,83 +47,80 @@ class AllergyViewModel @Inject constructor(
     }
 
     fun loadAllergies() {
-        _allergies.value = UiState.Loading
+        _allergies.postValue(UiState.Loading())
         launchSafe(viewModelScope, onError = { error ->
-            _allergies.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+            _allergies.postValue(UiState.Error("Произошла ошибка: ${error.localizedMessage}"))
         }) {
             try {
-                val allergies = withContext(Dispatchers.IO) {
-                    getAllergiesUseCase()
+                getAllergiesUseCase().collectLatest { allergies ->
+                    updateAllergiesList(allergies)
                 }
-                updateAllergiesList(allergies)
             } catch (e: Exception) {
                 Timber.e(e, "Error loading allergies")
-                _allergies.value = UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}")
+                _allergies.postValue(UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}"))
             }
         }
     }
 
-    fun getAllergyById(id: Long) {
-        _allergyDetails.value = UiState.Loading
+    fun getAllergyById(id: String) {
+        _allergyDetails.postValue(UiState.Loading())
         launchSafe(viewModelScope, onError = { error ->
-            _allergyDetails.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+            _allergyDetails.postValue(UiState.Error("Произошла ошибка: ${error.localizedMessage}"))
         }) {
             try {
-                val allergy = withContext(Dispatchers.IO) {
-                    getAllergyByIdUseCase(id)
-                }
-                
-                if (allergy != null) {
-                    _allergyDetails.value = UiState.Success(allergy)
-                } else {
-                    _allergyDetails.value = UiState.Error("Аллергия не найдена")
+                getAllergyByIdUseCase(id).collectLatest { allergy ->
+                    if (allergy != null) {
+                        _allergyDetails.postValue(UiState.Success(allergy))
+                    } else {
+                        _allergyDetails.postValue(UiState.Error("Аллергия не найдена"))
+                    }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error loading allergy details")
-                _allergyDetails.value = UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}")
+                _allergyDetails.postValue(UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}"))
             }
         }
     }
 
     fun addAllergy(allergy: Allergy) {
-        _saveState.value = UiState.Loading
+        _saveState.postValue(UiState.Loading())
         launchSafe(viewModelScope, onError = { error ->
-            _saveState.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+            _saveState.postValue(UiState.Error("Произошла ошибка: ${error.localizedMessage}"))
         }) {
             try {
                 withContext(Dispatchers.IO) {
                     addAllergyUseCase(allergy)
                 }
-                _saveState.value = UiState.Success(true)
+                _saveState.postValue(UiState.Success(true))
                 loadAllergies()
             } catch (e: Exception) {
                 Timber.e(e, "Error adding allergy")
-                _saveState.value = UiState.Error("Ошибка сохранения: ${e.localizedMessage}")
+                _saveState.postValue(UiState.Error("Ошибка сохранения: ${e.localizedMessage}"))
             }
         }
     }
 
     fun updateAllergy(allergy: Allergy) {
-        _saveState.value = UiState.Loading
+        _saveState.postValue(UiState.Loading())
         launchSafe(viewModelScope, onError = { error ->
-            _saveState.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+            _saveState.postValue(UiState.Error("Произошла ошибка: ${error.localizedMessage}"))
         }) {
             try {
                 withContext(Dispatchers.IO) {
                     updateAllergyUseCase(allergy)
                 }
-                _saveState.value = UiState.Success(true)
+                _saveState.postValue(UiState.Success(true))
                 loadAllergies()
             } catch (e: Exception) {
                 Timber.e(e, "Error updating allergy")
-                _saveState.value = UiState.Error("Ошибка обновления: ${e.localizedMessage}")
+                _saveState.postValue(UiState.Error("Ошибка обновления: ${e.localizedMessage}"))
             }
         }
     }
 
     fun deleteAllergy(allergy: Allergy) {
         launchSafe(viewModelScope, onError = { error ->
-            _allergies.value = UiState.Error("Произошла ошибка: ${error.localizedMessage}")
+            _allergies.postValue(UiState.Error("Произошла ошибка: ${error.localizedMessage}"))
         }) {
             try {
                 withContext(Dispatchers.IO) {
@@ -131,7 +129,7 @@ class AllergyViewModel @Inject constructor(
                 loadAllergies()
             } catch (e: Exception) {
                 Timber.e(e, "Error deleting allergy")
-                _allergies.value = UiState.Error("Ошибка удаления: ${e.localizedMessage}")
+                _allergies.postValue(UiState.Error("Ошибка удаления: ${e.localizedMessage}"))
             }
         }
     }
@@ -140,10 +138,9 @@ class AllergyViewModel @Inject constructor(
         if (currentFilterType != filterType) {
             currentFilterType = filterType
             
-            _allergies.value?.let { state ->
-                if (state is UiState.Success) {
-                    updateAllergiesList(state.data)
-                }
+            val currentState = _allergies.value
+            if (currentState is UiState.Success) {
+                updateAllergiesList(currentState.data)
             }
         }
     }
@@ -153,15 +150,12 @@ class AllergyViewModel @Inject constructor(
             FilterType.ALL -> allergies
             FilterType.ACTIVE -> allergies.filter { it.isActive }
             FilterType.SEVERE -> allergies.filter { 
-                it.severity == "4" || it.severity == "5" || it.severity.equals("Высокая", ignoreCase = true)
+                it.severity == Allergy.Severity.HIGH.toString() || 
+                it.severity.equals("Высокая", ignoreCase = true)
             }
         }
         
-        _allergies.value = if (filteredList.isEmpty()) {
-            UiState.Success(emptyList())
-        } else {
-            UiState.Success(filteredList)
-        }
+        _allergies.postValue(UiState.Success(filteredList))
     }
 
     enum class FilterType {

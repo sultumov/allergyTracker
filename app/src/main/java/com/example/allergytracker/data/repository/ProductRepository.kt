@@ -32,11 +32,13 @@ class ProductRepository @Inject constructor(
         try {
             val historyItem = HistoryItem(
                 id = System.currentTimeMillis().toString(),
-                productName = product.name,
-                scanDate = Date(),
-                containsGluten = product.containsGluten,
-                containsLactose = product.containsLactose,
-                containsNuts = product.containsNuts
+                name = product.name,
+                date = Date(),
+                allergens = buildList {
+                    if (product.containsGluten) add("Глютен")
+                    if (product.containsLactose) add("Лактоза")
+                    if (product.containsNuts) add("Орехи")
+                }
             )
             firebaseDataSource.saveHistoryItem(historyItem)
         } catch (e: Exception) {
