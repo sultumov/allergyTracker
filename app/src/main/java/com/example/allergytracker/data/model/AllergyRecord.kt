@@ -1,7 +1,5 @@
 package com.example.allergytracker.data.model
 
-import java.util.Date
-
 /**
  * Модель записи о реакции на аллергию
  */
