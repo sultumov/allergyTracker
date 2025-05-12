@@ -3,65 +3,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/mainFragment">
-
-    <fragment
-        android:id="@+id/mainFragment"
-        android:name="com.example.allergytracker.ui.main.MainFragment"
-        android:label="@string/app_name"
-        tools:layout="@layout/fragment_main">
-        <action
-            android:id="@+id/action_mainFragment_to_allergyList"
-            app:destination="@id/allergyListFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-        <action
-            android:id="@+id/action_mainFragment_to_reactionList"
-            app:destination="@id/reactionListFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-    </fragment>
+    app:startDestination="@id/allergyListFragment">
 
     <fragment
         android:id="@+id/allergyListFragment"
         android:name="com.example.allergytracker.ui.allergy.AllergyListFragment"
-        android:label="Аллергии"
+        android:label="Мои аллергии"
         tools:layout="@layout/fragment_allergy_list">
         <action
-            android:id="@+id/action_allergyList_to_allergyDetails"
-            app:destination="@id/allergyDetailsFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-        <action
-            android:id="@+id/action_allergyList_to_addAllergy"
+            android:id="@+id/action_allergyListFragment_to_addAllergyFragment"
             app:destination="@id/addAllergyFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/reactionListFragment"
-        android:name="com.example.allergytracker.ui.reaction.ReactionListFragment"
-        android:label="Реакции"
-        tools:layout="@layout/fragment_reaction_list">
         <action
-            android:id="@+id/action_reactionList_to_reactionDetails"
-            app:destination="@id/reactionDetailsFragment"
+            android:id="@+id/action_allergyListFragment_to_allergyDetailFragment"
+            app:destination="@id/allergyDetailFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
         <action
-            android:id="@+id/action_reactionList_to_addReaction"
-            app:destination="@id/addReactionFragment"
+            android:id="@+id/action_allergyListFragment_to_testFirebaseFragment"
+            app:destination="@id/testFirebaseFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
@@ -71,74 +36,26 @@
     <fragment
         android:id="@+id/addAllergyFragment"
         android:name="com.example.allergytracker.ui.allergy.AddAllergyFragment"
-        android:label="Добавить аллергию"
-        tools:layout="@layout/fragment_add_allergy" />
-
-    <fragment
-        android:id="@+id/addReactionFragment"
-        android:name="com.example.allergytracker.ui.reaction.AddReactionFragment"
-        android:label="Добавить реакцию"
-        tools:layout="@layout/fragment_add_reaction">
-        <argument
-            android:name="allergyId"
-            app:argType="string"
-            app:nullable="true"
-            android:defaultValue="@null" />
+        android:label="Добавление аллергии"
+        tools:layout="@layout/fragment_add_allergy">
+        <action
+            android:id="@+id/action_addAllergyFragment_to_allergyListFragment"
+            app:destination="@id/allergyListFragment"
+            app:popUpTo="@id/allergyListFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <fragment
-        android:id="@+id/allergyDetailsFragment"
-        android:name="com.example.allergytracker.ui.allergy.AllergyDetailsFragment"
+        android:id="@+id/allergyDetailFragment"
+        android:name="com.example.allergytracker.ui.allergy.AllergyDetailFragment"
         android:label="Детали аллергии"
-        tools:layout="@layout/fragment_allergy_details">
+        tools:layout="@layout/fragment_allergy_detail">
         <argument
             android:name="allergyId"
-            app:argType="string" />
+            app:argType="long" />
         <action
-            android:id="@+id/action_allergyDetails_to_editAllergy"
-            app:destination="@id/editAllergyFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-        <action
-            android:id="@+id/action_allergyDetails_to_addReaction"
-            app:destination="@id/addReactionFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-        <action
-            android:id="@+id/action_allergyDetails_to_reactionDetails"
-            app:destination="@id/reactionDetailsFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/reactionDetailsFragment"
-        android:name="com.example.allergytracker.ui.reaction.ReactionDetailsFragment"
-        android:label="Детали реакции"
-        tools:layout="@layout/fragment_reaction_details">
-        <argument
-            android:name="reactionId"
-            app:argType="string" />
-        <action
-            android:id="@+id/action_reactionDetails_to_editReaction"
-            app:destination="@id/editReactionFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
-        <action
-            android:id="@+id/action_reactionDetails_to_allergyDetails"
-            app:destination="@id/allergyDetailsFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
+            android:id="@+id/action_allergyDetailFragment_to_editAllergyFragment"
+            app:destination="@id/editAllergyFragment" />
     </fragment>
 
     <fragment
@@ -148,41 +65,13 @@
         tools:layout="@layout/fragment_edit_allergy">
         <argument
             android:name="allergyId"
-            app:argType="string" />
+            app:argType="long" />
     </fragment>
-
+    
     <fragment
-        android:id="@+id/editReactionFragment"
-        android:name="com.example.allergytracker.ui.reaction.EditReactionFragment"
-        android:label="Редактирование реакции"
-        tools:layout="@layout/fragment_edit_reaction">
-        <argument
-            android:name="reactionId"
-            app:argType="string" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/recipeGeneratorFragment"
-        android:name="com.example.allergytracker.ui.recipe.RecipeGeneratorFragment"
-        android:label="Recipe Generator"
-        tools:layout="@layout/fragment_recipe_generator">
-        <action
-            android:id="@+id/action_recipeGenerator_to_allergyTracker"
-            app:destination="@id/allergyTrackerFragment"
-            app:popUpTo="@id/allergyTrackerFragment"
-            app:popUpToInclusive="false" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/allergenGuideFragment"
-        android:name="com.example.allergytracker.ui.guide.AllergenGuideFragment"
-        android:label="Allergen Guide"
-        tools:layout="@layout/fragment_allergen_guide">
-        <action
-            android:id="@+id/action_allergenGuide_to_allergyTracker"
-            app:destination="@id/allergyTrackerFragment"
-            app:popUpTo="@id/allergyTrackerFragment"
-            app:popUpToInclusive="false" />
-    </fragment>
+        android:id="@+id/testFirebaseFragment"
+        android:name="com.example.allergytracker.ui.TestFirebaseFragment"
+        android:label="Тест Firebase"
+        tools:layout="@layout/fragment_test_firebase" />
 
 </navigation> 

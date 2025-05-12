@@ -14,7 +14,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:navigationIcon="@drawable/ic_back"
-            app:title="Add Reaction" />
+            app:title="Добавить реакцию" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -35,7 +35,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Severity">
+                android:hint="Тяжесть">
 
                 <AutoCompleteTextView
                     android:id="@+id/severitySpinner"
@@ -51,7 +51,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Symptoms">
+                android:hint="Симптомы">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/symptomsEditText"
@@ -68,7 +68,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Notes">
+                android:hint="Заметки">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/notesEditText"
@@ -84,7 +84,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Save Reaction" />
+                android:text="Сохранить" />
 
         </LinearLayout>
 

@@ -1,13 +1,17 @@
 package com.example.allergytracker.di
 
+import com.example.allergytracker.data.local.dao.AllergyDao
 import com.example.allergytracker.data.mapper.AllergyMapper
 import com.example.allergytracker.data.mapper.ReactionMapper
 import com.example.allergytracker.data.remote.datasource.FirebaseAllergyDataSource
 import com.example.allergytracker.data.remote.datasource.FirebaseReactionDataSource
+import com.example.allergytracker.data.remote.datasource.FirebaseSymptomDataSource
 import com.example.allergytracker.data.repository.AllergyRepositoryImpl
 import com.example.allergytracker.data.repository.ReactionRepositoryImpl
+import com.example.allergytracker.data.repository.SymptomRepositoryImpl
 import com.example.allergytracker.domain.repository.AllergyRepository
 import com.example.allergytracker.domain.repository.ReactionRepository
+import com.example.allergytracker.domain.repository.SymptomRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
@@ -35,6 +39,11 @@ object DataModule {
     
     @Provides
     @Singleton
+    fun provideSymptomDataSource(firestore: FirebaseFirestore): FirebaseSymptomDataSource =
+        FirebaseSymptomDataSource(firestore)
+    
+    @Provides
+    @Singleton
     fun provideAllergyMapper(): AllergyMapper = AllergyMapper()
     
     @Provides
@@ -45,8 +54,8 @@ object DataModule {
     @Singleton
     fun provideAllergyRepository(
         dataSource: FirebaseAllergyDataSource,
-        mapper: AllergyMapper
-    ): AllergyRepository = AllergyRepositoryImpl(dataSource, mapper)
+        allergyDao: AllergyDao
+    ): AllergyRepository = AllergyRepositoryImpl(dataSource, allergyDao)
     
     @Provides
     @Singleton
@@ -54,4 +63,10 @@ object DataModule {
         dataSource: FirebaseReactionDataSource,
         mapper: ReactionMapper
     ): ReactionRepository = ReactionRepositoryImpl(dataSource, mapper)
+    
+    @Provides
+    @Singleton
+    fun provideSymptomRepository(
+        dataSource: FirebaseSymptomDataSource
+    ): SymptomRepository = SymptomRepositoryImpl(dataSource)
 } 

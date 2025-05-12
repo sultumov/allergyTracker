@@ -1,121 +1,169 @@
 package com.example.allergytracker.ui.allergy
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.allergytracker.domain.model.Allergy
-import com.example.allergytracker.domain.usecase.allergy.*
-import com.example.allergytracker.ui.common.BaseViewModel
-import com.example.allergytracker.ui.common.UiState
+import com.example.allergytracker.domain.usecase.allergy.AddAllergyUseCase
+import com.example.allergytracker.domain.usecase.allergy.DeleteAllergyUseCase
+import com.example.allergytracker.domain.usecase.allergy.GetAllergyByIdUseCase
+import com.example.allergytracker.domain.usecase.allergy.GetAllergiesUseCase
+import com.example.allergytracker.domain.usecase.allergy.UpdateAllergyUseCase
+import com.example.allergytracker.ui.state.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
 class AllergyViewModel @Inject constructor(
     private val getAllergiesUseCase: GetAllergiesUseCase,
-    private val getActiveAllergiesUseCase: GetActiveAllergiesUseCase,
     private val getAllergyByIdUseCase: GetAllergyByIdUseCase,
     private val addAllergyUseCase: AddAllergyUseCase,
     private val updateAllergyUseCase: UpdateAllergyUseCase,
     private val deleteAllergyUseCase: DeleteAllergyUseCase
-) : BaseViewModel() {
+) : ViewModel() {
 
-    private val _allergiesState = MutableStateFlow<UiState<List<Allergy>>>(UiState.Loading())
-    val allergiesState: StateFlow<UiState<List<Allergy>>> = _allergiesState
+    // Список аллергий
+    private val _allergies = MutableLiveData<UiState<List<Allergy>>>()
+    val allergies: LiveData<UiState<List<Allergy>>> = _allergies
 
-    private val _allergyState = MutableStateFlow<UiState<Allergy?>>(UiState.Loading())
-    val allergyState: StateFlow<UiState<Allergy?>> = _allergyState
+    // Детали аллергии
+    private val _allergyDetails = MutableLiveData<UiState<Allergy>>()
+    val allergyDetails: LiveData<UiState<Allergy>> = _allergyDetails
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
+    // Состояние сохранения/обновления
+    private val _saveState = MutableLiveData<UiState<Boolean>>()
+    val saveState: LiveData<UiState<Boolean>> = _saveState
 
-    private val _showOnlyActive = MutableStateFlow(true)
-    val showOnlyActive: StateFlow<Boolean> = _showOnlyActive
+    // Текущий тип фильтра
+    private var currentFilterType = FilterType.ALL
+
+    // Обработчик исключений
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Timber.e(throwable, "Error in ViewModel")
+        _allergies.postValue(UiState.Error("Произошла ошибка: ${throwable.localizedMessage}"))
+    }
 
     init {
         loadAllergies()
     }
 
     fun loadAllergies() {
-        viewModelScope.launch {
-            _allergiesState.value = UiState.Loading()
+        _allergies.value = UiState.Loading
+        viewModelScope.launch(exceptionHandler) {
             try {
-                val allergiesFlow = if (_showOnlyActive.value) {
-                    getActiveAllergiesUseCase()
-                } else {
+                val allergies = withContext(Dispatchers.IO) {
                     getAllergiesUseCase()
                 }
-
-                allergiesFlow
-                    .catch { e ->
-                        Timber.e(e, "Error loading allergies")
-                        _allergiesState.value = UiState.Error(e.message ?: "Unknown error")
-                    }
-                    .map { allergies ->
-                        applySearchFilter(allergies)
-                    }
-                    .collect { filteredAllergies ->
-                        _allergiesState.value = UiState.Success(filteredAllergies)
-                    }
+                updateAllergiesList(allergies)
             } catch (e: Exception) {
-                Timber.e(e, "Error setting up allergies flow")
-                _allergiesState.value = UiState.Error(e.message ?: "Unknown error")
+                Timber.e(e, "Error loading allergies")
+                _allergies.value = UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}")
             }
         }
     }
 
-    fun loadAllergyById(id: String) {
-        launchDataLoad(_allergyState) {
-            getAllergyByIdUseCase(id).first()
+    fun getAllergyById(id: Long) {
+        _allergyDetails.value = UiState.Loading
+        viewModelScope.launch(exceptionHandler) {
+            try {
+                val allergy = withContext(Dispatchers.IO) {
+                    getAllergyByIdUseCase(id)
+                }
+                
+                if (allergy != null) {
+                    _allergyDetails.value = UiState.Success(allergy)
+                } else {
+                    _allergyDetails.value = UiState.Error("Аллергия не найдена")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error loading allergy details")
+                _allergyDetails.value = UiState.Error("Ошибка загрузки данных: ${e.localizedMessage}")
+            }
         }
     }
 
     fun addAllergy(allergy: Allergy) {
-        launchOperation(
-            operation = { addAllergyUseCase(allergy) },
-            onSuccess = { loadAllergies() }
-        )
+        _saveState.value = UiState.Loading
+        viewModelScope.launch(exceptionHandler) {
+            try {
+                withContext(Dispatchers.IO) {
+                    addAllergyUseCase(allergy)
+                }
+                _saveState.value = UiState.Success(true)
+                loadAllergies()
+            } catch (e: Exception) {
+                Timber.e(e, "Error adding allergy")
+                _saveState.value = UiState.Error("Ошибка сохранения: ${e.localizedMessage}")
+            }
+        }
     }
 
     fun updateAllergy(allergy: Allergy) {
-        launchOperation(
-            operation = { updateAllergyUseCase(allergy) },
-            onSuccess = {
+        _saveState.value = UiState.Loading
+        viewModelScope.launch(exceptionHandler) {
+            try {
+                withContext(Dispatchers.IO) {
+                    updateAllergyUseCase(allergy)
+                }
+                _saveState.value = UiState.Success(true)
                 loadAllergies()
-                loadAllergyById(allergy.id) // Refresh the current allergy view if needed
-            }
-        )
-    }
-
-    fun deleteAllergy(id: String) {
-        launchOperation(
-            operation = { deleteAllergyUseCase(id) },
-            onSuccess = { loadAllergies() }
-        )
-    }
-
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
-        loadAllergies()
-    }
-
-    fun setShowOnlyActive(showActive: Boolean) {
-        _showOnlyActive.value = showActive
-        loadAllergies()
-    }
-
-    private fun applySearchFilter(allergies: List<Allergy>): List<Allergy> {
-        val query = _searchQuery.value.trim().lowercase()
-        return if (query.isEmpty()) {
-            allergies
-        } else {
-            allergies.filter { allergy ->
-                allergy.name.lowercase().contains(query) ||
-                        allergy.category.lowercase().contains(query) ||
-                        allergy.description.lowercase().contains(query)
+            } catch (e: Exception) {
+                Timber.e(e, "Error updating allergy")
+                _saveState.value = UiState.Error("Ошибка обновления: ${e.localizedMessage}")
             }
         }
+    }
+
+    fun deleteAllergy(allergy: Allergy) {
+        viewModelScope.launch(exceptionHandler) {
+            try {
+                withContext(Dispatchers.IO) {
+                    deleteAllergyUseCase(allergy.id)
+                }
+                loadAllergies()
+            } catch (e: Exception) {
+                Timber.e(e, "Error deleting allergy")
+                _allergies.value = UiState.Error("Ошибка удаления: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun setFilterType(filterType: FilterType) {
+        if (currentFilterType != filterType) {
+            currentFilterType = filterType
+            
+            _allergies.value?.let { state ->
+                if (state is UiState.Success) {
+                    updateAllergiesList(state.data)
+                }
+            }
+        }
+    }
+
+    private fun updateAllergiesList(allergies: List<Allergy>) {
+        val filteredList = when (currentFilterType) {
+            FilterType.ALL -> allergies
+            FilterType.ACTIVE -> allergies.filter { it.isActive }
+            FilterType.SEVERE -> allergies.filter { 
+                it.severity == "4" || it.severity == "5" || it.severity.equals("Высокая", ignoreCase = true)
+            }
+        }
+        
+        _allergies.value = if (filteredList.isEmpty()) {
+            UiState.Success(emptyList())
+        } else {
+            UiState.Success(filteredList)
+        }
+    }
+
+    enum class FilterType {
+        ALL, ACTIVE, SEVERE
     }
 } 
 } 

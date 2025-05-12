@@ -14,39 +14,27 @@
         android:padding="16dp">
 
         <TextView
-            android:id="@+id/tvAllergyName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceHeadline6" />
-
-        <LinearLayout
+            android:id="@+id/allergyName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvAllergyCategory"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:textAppearance="?attr/textAppearanceBody2" />
-
-            <TextView
-                android:id="@+id/tvSeverity"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBody2" />
-
-        </LinearLayout>
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvNotes"
+            android:id="@+id/allergySeverity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/severity_background"
+            android:padding="4dp"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/allergyLastEpisode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBody2"
-            android:visibility="gone" />
+            android:textSize="14sp" />
 
     </LinearLayout>
 

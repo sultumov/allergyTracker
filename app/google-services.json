@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1068716146562",
+    "project_id": "allergytracker-9724b",
+    "storage_bucket": "allergytracker-9724b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1068716146562:android:69a773e4b429573dd5d99b",
+        "android_client_info": {
+          "package_name": "com.example.allergytracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG0P5suBi6_7hcMtF8Y0u2i9WecKpE-Lo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
