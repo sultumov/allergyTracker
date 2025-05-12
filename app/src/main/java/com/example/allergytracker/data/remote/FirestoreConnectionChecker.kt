@@ -1,6 +1,7 @@
 package com.example.allergytracker.data.remote
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
@@ -18,8 +19,8 @@ object FirestoreConnectionChecker {
         try {
             val db = FirebaseFirestore.getInstance()
             
-            // Устанавливаем короткий таймаут для операции
-            val settings = db.firestoreSettings.toBuilder()
+            // Устанавливаем настройки для проверки соединения
+            val settings = FirebaseFirestoreSettings.Builder()
                 .setHost("firestore.googleapis.com")
                 .setSslEnabled(true)
                 .build()
