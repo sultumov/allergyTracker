@@ -4,42 +4,32 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.widget.SearchView
+import android.view.animation.AnimationUtils
+import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.allergytracker.R
 import com.example.allergytracker.databinding.FragmentAllergyListBinding
 import com.example.allergytracker.domain.model.Allergy
-import com.example.allergytracker.ui.common.BaseListFragment
-import com.example.allergytracker.ui.common.UiState
-import com.example.allergytracker.ui.navigation.NavigationManager
-import com.example.allergytracker.util.AnimationUtils
-import com.example.allergytracker.util.PreferenceManager
+import com.example.allergytracker.ui.state.UiState
+import com.example.allergytracker.util.safeNavigate
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 @AndroidEntryPoint
-class AllergyListFragment : BaseListFragment() {
-
+class AllergyListFragment : Fragment() {
     private var _binding: FragmentAllergyListBinding? = null
     private val binding get() = _binding!!
-
-    private val viewModel: AllergyViewModel by viewModels()
-    private lateinit var allergyAdapter: AllergyAdapter
     
-    @Inject
-    lateinit var preferenceManager: PreferenceManager
-
+    private val viewModel: AllergyViewModel by viewModels()
+    private lateinit var adapter: AllergyAdapter
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -48,160 +38,132 @@ class AllergyListFragment : BaseListFragment() {
         _binding = FragmentAllergyListBinding.inflate(inflater, container, false)
         return binding.root
     }
-
-    override fun setupToolbar() {
-        // Если нужна специальная настройка тулбара
+    
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        try {
+            setupRecyclerView()
+            setupSearch()
+            setupFilters()
+            observeViewModel()
+            setupListeners()
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+            Toast.makeText(requireContext(), "Произошла ошибка при загрузке данных", Toast.LENGTH_LONG).show()
+        }
     }
-
-    override fun setupRecyclerView() {
-        allergyAdapter = AllergyAdapter(
+    
+    private fun setupRecyclerView() {
+        adapter = AllergyAdapter(
             onItemClick = { allergy ->
-                NavigationManager.navigateToAllergyDetails(this, allergy.id)
+                findNavController().safeNavigate(
+                    AllergyListFragmentDirections.actionAllergyListFragmentToAllergyDetailFragment(allergy.id)
+                )
             },
             onLongClick = { allergy ->
                 showDeleteDialog(allergy)
                 true
             }
         )
-
-        binding.recyclerViewAllergies.apply {
-            adapter = allergyAdapter
-            layoutManager = LinearLayoutManager(requireContext())
-        }
-    }
-
-    override fun setupFab() {
-        binding.fabAddAllergy.setOnClickListener {
-            NavigationManager.navigateToAddAllergy(this)
-        }
-    }
-    
-    override fun setupFilters() {
-        // Загружаем состояние фильтра из настроек
-        val savedShowOnlyActive = preferenceManager.getBoolean(
-            PreferenceManager.Keys.SHOW_ACTIVE_ALLERGIES_ONLY, 
-            true
-        )
-        binding.chipActive.isChecked = savedShowOnlyActive
-        viewModel.setShowOnlyActive(savedShowOnlyActive)
         
-        binding.chipGroupActiveStatus.setOnCheckedStateChangeListener { _, checkedIds ->
-            val showOnlyActive = checkedIds.contains(R.id.chipActive)
-            viewModel.setShowOnlyActive(showOnlyActive)
-            // Сохраняем состояние фильтра в настройки
-            preferenceManager.putBoolean(
-                PreferenceManager.Keys.SHOW_ACTIVE_ALLERGIES_ONLY, 
-                showOnlyActive
+        binding.allergiesRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = this@AllergyListFragment.adapter
+            layoutAnimation = AnimationUtils.loadLayoutAnimation(
+                requireContext(),
+                R.anim.item_animation
             )
         }
     }
     
-    override fun setupSearch() {
-        // Загружаем последний поисковый запрос из настроек
-        val lastQuery = preferenceManager.getString(PreferenceManager.Keys.LAST_SEARCH_QUERY)
-        if (lastQuery.isNotEmpty()) {
-            binding.searchView.setQuery(lastQuery, false)
-            allergyAdapter.filter.filter(lastQuery)
-        }
-        
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+    private fun setupSearch() {
+        binding.searchBar.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                saveSearchQuery(query.orEmpty())
-                return true
+                return false
             }
-
+            
             override fun onQueryTextChange(newText: String?): Boolean {
-                allergyAdapter.filter.filter(newText)
-                saveSearchQuery(newText.orEmpty())
+                adapter.filter.filter(newText ?: "")
                 return true
             }
         })
     }
     
-    private fun saveSearchQuery(query: String) {
-        preferenceManager.putString(PreferenceManager.Keys.LAST_SEARCH_QUERY, query)
+    private fun setupFilters() {
+        binding.filterChipGroup.setOnCheckedChangeListener { _, checkedId ->
+            val filterType = when (checkedId) {
+                R.id.chipAll -> AllergyViewModel.FilterType.ALL
+                R.id.chipActive -> AllergyViewModel.FilterType.ACTIVE
+                R.id.chipSevere -> AllergyViewModel.FilterType.SEVERE
+                else -> AllergyViewModel.FilterType.ALL
+            }
+            viewModel.setFilterType(filterType)
+        }
     }
     
-    override fun performSearch(query: String) {
-        allergyAdapter.filter.filter(query)
-        saveSearchQuery(query)
+    private fun setupListeners() {
+        binding.addAllergyButton.setOnClickListener {
+            findNavController().safeNavigate(
+                AllergyListFragmentDirections.actionAllergyListFragmentToAddAllergyFragment()
+            )
+        }
+        
+        binding.testFirebaseButton.setOnClickListener {
+            findNavController().safeNavigate(
+                AllergyListFragmentDirections.actionAllergyListFragmentToTestFirebaseFragment()
+            )
+        }
     }
     
-    override fun getRecyclerView(): RecyclerView? = binding.recyclerViewAllergies
-    
-    override fun getFab(): FloatingActionButton? = binding.fabAddAllergy
-    
-    override fun getSearchView(): SearchView? = binding.searchView
-    
-    override fun getLoadingView(): View? = binding.progressBar
-    
-    override fun getEmptyView(): View? = binding.textEmptyList
-
-    override fun observeViewModel() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Наблюдаем за состоянием списка аллергий
-                launch {
-                    viewModel.allergiesState.collectLatest { state ->
-                        when (state) {
-                            is UiState.Loading -> showLoading(true)
-                            is UiState.Success -> {
-                                AnimationUtils.crossFade(binding.recyclerViewAllergies, binding.progressBar)
-                                showAllergies(state.data)
-                            }
-                            is UiState.Error -> {
-                                showLoading(false)
-                                showError(state.message)
-                            }
-                            else -> showLoading(false)
-                        }
+    private fun observeViewModel() {
+        viewModel.allergies.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is UiState.Loading -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.allergiesRecyclerView.visibility = View.GONE
+                    binding.emptyView.visibility = View.GONE
+                }
+                is UiState.Success -> {
+                    binding.progressBar.visibility = View.GONE
+                    
+                    if (state.data.isEmpty()) {
+                        binding.allergiesRecyclerView.visibility = View.GONE
+                        binding.emptyView.visibility = View.VISIBLE
+                    } else {
+                        binding.allergiesRecyclerView.visibility = View.VISIBLE
+                        binding.emptyView.visibility = View.GONE
+                        adapter.submitList(state.data)
+                        binding.allergiesRecyclerView.scheduleLayoutAnimation()
                     }
                 }
-
-                // Наблюдаем за статусом фильтра "только активные"
-                launch {
-                    viewModel.showOnlyActive.collectLatest { showOnlyActive ->
-                        if (binding.chipActive.isChecked != showOnlyActive) {
-                            binding.chipActive.isChecked = showOnlyActive
-                        }
-                    }
+                is UiState.Error -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.allergiesRecyclerView.visibility = View.GONE
+                    binding.emptyView.visibility = View.VISIBLE
+                    binding.emptyView.text = state.message
+                    Timber.e("Error loading allergies: ${state.message}")
+                    Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
-
-    private fun showAllergies(allergies: List<Allergy>) {
-        allergyAdapter.submitList(allergies)
-        allergyAdapter.showEmptyView(binding.textEmptyList, binding.recyclerViewAllergies)
-    }
-
+    
     private fun showDeleteDialog(allergy: Allergy) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Удаление аллергии")
-            .setMessage("Вы уверены, что хотите удалить '${allergy.name}'? Это действие нельзя отменить.")
-            .setNegativeButton("Отмена") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .setPositiveButton("Удалить") { _, _ ->
-                deleteAllergy(allergy)
-            }
-            .show()
-    }
-
-    private fun deleteAllergy(allergy: Allergy) {
-        try {
-            viewModel.deleteAllergy(allergy.id)
-            showSuccess("Аллергия '${allergy.name}' удалена")
-        } catch (e: Exception) {
-            Timber.e(e, "Error deleting allergy: ${allergy.id}")
-            showError("Ошибка при удалении аллергии")
-        }
+        // Обработка удаления с подтверждением
+        viewModel.deleteAllergy(allergy)
+        showUndoSnackbar(allergy)
     }
     
-    private fun showSuccess(message: String) {
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+    private fun showUndoSnackbar(allergy: Allergy) {
+        Snackbar.make(
+            binding.root,
+            "Аллергия удалена",
+            Snackbar.LENGTH_LONG
+        ).setAction("Отменить") {
+            viewModel.addAllergy(allergy)
+        }.show()
     }
-
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

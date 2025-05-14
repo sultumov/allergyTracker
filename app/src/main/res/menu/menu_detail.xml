@@ -4,13 +4,13 @@
     
     <item
         android:id="@+id/action_edit"
-        android:icon="@drawable/ic_edit"
+        android:icon="@android:drawable/ic_menu_edit"
         android:title="Редактировать"
         app:showAsAction="ifRoom" />
     
     <item
         android:id="@+id/action_delete"
-        android:icon="@drawable/ic_delete"
+        android:icon="@android:drawable/ic_menu_delete"
         android:title="Удалить"
         app:showAsAction="ifRoom" />
 </menu> 

@@ -1,14 +1,37 @@
 package com.example.allergytracker.data.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
-@Entity(tableName = "allergy_records")
+/**
+ * Модель записи о реакции на аллергию
+ */
 data class AllergyRecord(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val date: String,
-    val symptoms: String,
-    val triggers: String,
-    val medication: String?
-) 
+    val id: String = "",
+    val allergyId: String = "",
+    val userId: String = "",
+    val date: Long = System.currentTimeMillis(),
+    val severity: Int = 0,
+    val symptoms: List<String> = emptyList(),
+    val notes: String = "",
+    val medications: List<String> = emptyList(),
+    val location: String? = null,
+    val triggers: List<String> = emptyList(),
+    val lastModified: Long = System.currentTimeMillis()
+) {
+    // Пустой конструктор для Firebase
+    constructor() : this(
+        id = "",
+        allergyId = "",
+        userId = "",
+        date = 0L,
+        severity = 0,
+        symptoms = emptyList(),
+        notes = "",
+        medications = emptyList(),
+        location = null,
+        triggers = emptyList(),
+        lastModified = 0L
+    )
+    
+    companion object {
+        const val COLLECTION_NAME = "records"
+    }
+} 

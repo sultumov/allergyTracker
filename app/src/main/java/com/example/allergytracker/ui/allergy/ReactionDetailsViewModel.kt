@@ -2,12 +2,13 @@ package com.example.allergytracker.ui.allergy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.allergytracker.data.model.Reaction
-import com.example.allergytracker.data.repository.ReactionRepository
+import com.example.allergytracker.domain.model.Reaction
+import com.example.allergytracker.domain.repository.ReactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,11 +23,11 @@ class ReactionDetailsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ReactionDetailsUiState>(ReactionDetailsUiState.Success)
     val uiState: StateFlow<ReactionDetailsUiState> = _uiState.asStateFlow()
 
-    fun loadReaction(reactionId: Int) {
+    fun loadReaction(reactionId: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = ReactionDetailsUiState.Loading
-                val reaction = reactionRepository.getReactionById(reactionId)
+                val reaction = reactionRepository.getReactionById(reactionId).first()
                 _reaction.value = reaction
                 _uiState.value = ReactionDetailsUiState.Success
             } catch (e: Exception) {
@@ -35,7 +36,7 @@ class ReactionDetailsViewModel @Inject constructor(
         }
     }
 
-    fun deleteReaction(reactionId: Int) {
+    fun deleteReaction(reactionId: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = ReactionDetailsUiState.Loading

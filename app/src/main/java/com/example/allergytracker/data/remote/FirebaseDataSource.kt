@@ -3,6 +3,7 @@ package com.example.allergytracker.data.remote
 import com.example.allergytracker.data.local.LocalCache
 import com.example.allergytracker.data.model.Allergy
 import com.example.allergytracker.data.model.AllergyRecord
+import com.example.allergytracker.data.model.HistoryItem
 import com.example.allergytracker.data.model.Product
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,68 +25,94 @@ class FirebaseDataSource @Inject constructor(
     private val database: FirebaseDatabase,
     private val localCache: LocalCache
 ) {
-    init {
-        // Enable offline persistence
-        database.setPersistenceEnabled(true)
-    }
-
+    /**
+     * Получение ID текущего пользователя с корректной обработкой ошибок
+     * @return ID пользователя или null, если пользователь не авторизован
+     */
     private fun getCurrentUserId(): String {
-        return auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+        return auth.currentUser?.uid ?: throw NotAuthenticatedException("Пользователь не авторизован")
     }
 
     // Allergy operations
     suspend fun saveAllergy(allergy: Allergy) {
-        val userId = getCurrentUserId()
-        database.getReference("users/$userId/allergies/${allergy.id}")
-            .setValue(allergy)
-            .await()
-        // Update local cache
-        val currentAllergies = localCache.getAllergies().toMutableList()
-        val index = currentAllergies.indexOfFirst { it.id == allergy.id }
-        if (index != -1) {
-            currentAllergies[index] = allergy
-        } else {
-            currentAllergies.add(allergy)
+        try {
+            val userId = getCurrentUserId()
+            database.getReference("users/$userId/allergies/${allergy.id}")
+                .setValue(allergy)
+                .await()
+            // Update local cache
+            val currentAllergies = localCache.getAllergies().toMutableList()
+            val index = currentAllergies.indexOfFirst { it.id == allergy.id }
+            if (index != -1) {
+                currentAllergies[index] = allergy
+            } else {
+                currentAllergies.add(allergy)
+            }
+            localCache.saveAllergies(currentAllergies)
+        } catch (e: Exception) {
+            Timber.e(e, "Error saving allergy: ${allergy.id}")
+            throw e
         }
-        localCache.saveAllergies(currentAllergies)
     }
 
     fun getAllergies(): Flow<List<Allergy>> = callbackFlow {
-        val userId = getCurrentUserId()
-        
-        // First emit cached data
-        trySend(localCache.getAllergies())
+        try {
+            val userId = getCurrentUserId()
+            
+            // First emit cached data
+            trySend(localCache.getAllergies())
 
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val allergies = snapshot.children.mapNotNull { it.getValue(Allergy::class.java) }
-                localCache.saveAllergies(allergies)
-                trySend(allergies)
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    try {
+                        val allergies = snapshot.children.mapNotNull { it.getValue(Allergy::class.java) }
+                        localCache.saveAllergies(allergies)
+                        trySend(allergies)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error parsing allergies from snapshot")
+                        trySend(localCache.getAllergies()) // Fallback to cache
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Timber.e(error.toException(), "Database error when fetching allergies")
+                    // Don't close the channel, just emit cached data
+                    trySend(localCache.getAllergies())
+                }
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                close(error.toException())
-            }
-        }
-
-        database.getReference("users/$userId/allergies")
-            .addValueEventListener(listener)
-
-        awaitClose {
             database.getReference("users/$userId/allergies")
-                .removeEventListener(listener)
+                .addValueEventListener(listener)
+
+            awaitClose {
+                database.getReference("users/$userId/allergies")
+                    .removeEventListener(listener)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error in getAllergies flow")
+            // Emit cached data and don't close the channel
+            trySend(localCache.getAllergies())
+            // Close only for authentication issues
+            if (e is NotAuthenticatedException) {
+                close(e)
+            }
         }
     }
 
     suspend fun deleteAllergy(allergyId: String) {
-        val userId = getCurrentUserId()
-        database.getReference("users/$userId/allergies/$allergyId")
-            .removeValue()
-            .await()
-        // Update local cache
-        val currentAllergies = localCache.getAllergies().toMutableList()
-        currentAllergies.removeAll { it.id == allergyId }
-        localCache.saveAllergies(currentAllergies)
+        try {
+            val userId = getCurrentUserId()
+            database.getReference("users/$userId/allergies/$allergyId")
+                .removeValue()
+                .await()
+            // Update local cache
+            val currentAllergies = localCache.getAllergies().toMutableList()
+            currentAllergies.removeAll { it.id == allergyId }
+            localCache.saveAllergies(currentAllergies)
+        } catch (e: Exception) {
+            Timber.e(e, "Error deleting allergy: $allergyId")
+            throw e
+        }
     }
 
     // Allergy Record operations
@@ -189,31 +217,36 @@ class FirebaseDataSource @Inject constructor(
 
     // Sync operations
     suspend fun syncData() {
-        val userId = getCurrentUserId()
-        val lastSyncTime = localCache.getLastSyncTime()
-        
-        // Sync allergies
-        val allergiesSnapshot = database.getReference("users/$userId/allergies")
-            .orderByChild("lastModified")
-            .startAt(lastSyncTime)
-            .get()
-            .await()
-        
-        val allergies = allergiesSnapshot.children.mapNotNull { it.getValue(Allergy::class.java) }
-        localCache.saveAllergies(allergies)
+        try {
+            val userId = getCurrentUserId()
+            val lastSyncTime = localCache.getLastSyncTime()
+            
+            // Sync allergies
+            val allergiesSnapshot = database.getReference("users/$userId/allergies")
+                .orderByChild("lastModified")
+                .startAt(lastSyncTime.toDouble())
+                .get()
+                .await()
+            
+            val allergies = allergiesSnapshot.children.mapNotNull { it.getValue(Allergy::class.java) }
+            localCache.saveAllergies(allergies)
 
-        // Sync records
-        val recordsSnapshot = database.getReference("users/$userId/records")
-            .orderByChild("lastModified")
-            .startAt(lastSyncTime)
-            .get()
-            .await()
-        
-        val records = recordsSnapshot.children.mapNotNull { it.getValue(AllergyRecord::class.java) }
-        localCache.saveAllergyRecords(records)
+            // Sync records
+            val recordsSnapshot = database.getReference("users/$userId/records")
+                .orderByChild("lastModified")
+                .startAt(lastSyncTime.toDouble())
+                .get()
+                .await()
+            
+            val records = recordsSnapshot.children.mapNotNull { it.getValue(AllergyRecord::class.java) }
+            localCache.saveAllergyRecords(records)
 
-        // Update last sync time
-        localCache.saveLastSyncTime(System.currentTimeMillis())
+            // Update last sync time
+            localCache.saveLastSyncTime(System.currentTimeMillis())
+        } catch (e: Exception) {
+            Timber.e(e, "Error syncing data")
+            throw e
+        }
     }
 
     // History operations
@@ -263,4 +296,9 @@ class FirebaseDataSource @Inject constructor(
         // Clear local cache
         localCache.saveHistory(emptyList())
     }
+
+    /**
+     * Исключение для случаев, когда пользователь не авторизован
+     */
+    class NotAuthenticatedException(message: String) : Exception(message)
 } 
